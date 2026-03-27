@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Global Ontology Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<link rel="stylesheet" href="assets/css/base.css"/>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
+</head>
+<body>
+
+<!-- API MODAL -->
+<div id="api-modal">
+  <div class="mbox">
+    <div class="mt">// GROQ API KEY</div>
+    <div class="ms">Free at console.groq.com/keys — stored locally in your browser.</div>
+    <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:2px;margin-bottom:5px">API_KEY</div>
+    <input id="ak-in" class="inp" type="password" placeholder="gsk_..."/>
+    <div id="ak-err" style="font-size:9px;color:#ef4444;min-height:13px;margin:4px 0 9px;font-family:var(--fm)"></div>
+    <div style="display:flex;gap:7px">
+      <button class="btn-p" onclick="saveKey()">SAVE & CONNECT</button>
+      <button class="btn-s" onclick="document.getElementById('api-modal').classList.remove('open')">CANCEL</button>
+    </div>
+    <div style="margin-top:9px;font-size:9px;color:var(--muted);font-family:var(--fm)">Free key → <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com/keys</a></div>
+  </div>
+</div>
+
+<!-- COUNTRY MODAL -->
+<div id="cm"><div class="cmbox" id="cm-content"></div></div>
+
+<div class="mtt" id="mtt"></div>
+<div class="kgtt" id="kgtt"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="logo">GLOBAL <em>ONTOLOGY</em> ENGINE</div>
+  <button class="nt active" onclick="show('map',this)">🗺 MAP</button>
+  <button class="nt" onclick="show('news',this)">📡 NEWS</button>
+  <button class="nt" onclick="show('channels',this)">📺 LIVE TV</button>
+  <button class="nt" onclick="show('markets',this)">📈 MARKETS</button>
+  <button class="nt" onclick="show('pred',this)">🤖 AI PREDICTIONS</button>
+  <button class="nt" onclick="show('briefs',this)">🌍 COUNTRY BRIEFS</button>
+  <button class="nt" onclick="show('kg',this)">🕸 KNOWLEDGE GRAPH</button>
+  <button class="nt" onclick="show('risk',this)">⚠ RISK MONITOR</button>
+  <button class="nt" onclick="show('climate',this)">🌪 CLIMATE</button>
+  <button class="nt" onclick="show('scenario',this)">🧪 SCENARIOS</button>
+  <button class="nt" onclick="show('timeline',this)">📅 TIMELINE</button>
+  <button class="nt" onclick="show('bias',this)">📰 BIAS DETECTOR</button>
+  <button class="nt" onclick="show('feed',this)">🎯 MY FEED</button>
+  <button class="nt" onclick="show('askai',this)">💬 ASK AI</button>
+  <div class="nr">
+    <div class="lb"><div class="ld"></div>LIVE</div>
+    <div style="display:flex;gap:3px;align-items:center">
+      <button class="thm-btn active" id="thm-amber" onclick="setTheme('',this)" title="Amber Intel">🟠</button>
+      <button class="thm-btn" id="thm-slate" onclick="setTheme('slate',this)" title="Cyber Slate">🔵</button>
+      <button class="thm-btn" id="thm-ghost" onclick="setTheme('ghost',this)" title="Ghost Mono">⬜</button>
+    </div>
+    <button class="ab" onclick="document.getElementById('api-modal').classList.add('open')">🔑 API KEY</button>
+  </div>
+</nav>
+
+<div id="main">
+
+<!-- ═══ MAP ═══ -->
+<div id="panel-map" class="panel active">
+  <div class="ph"><div class="pt">// INTELLIGENCE MAP</div><div class="ps">Country color = risk level · Click any country for intel brief · Drag & zoom</div></div>
+  <div class="fbar">
+    <button class="fp active" onclick="mf('all',this)">ALL</button>
+    <button class="fp" onclick="mf('conflict',this)">⚔ CONFLICTS</button>
+    <button class="fp" onclick="mf('economic',this)">💹 ECONOMIC</button>
+    <button class="fp" onclick="mf('climate',this)">🌪 CLIMATE</button>
+    <button class="fp" onclick="mf('political',this)">🏛 POLITICAL</button>
+  </div>
+  <div id="map-wrap">
+    <div class="mc">
+      <button class="mb" onclick="mz(1.3)">+</button>
+      <button class="mb" onclick="mz(0.77)">−</button>
+      <button class="mb" onclick="mr()" style="font-size:9px">⌂</button>
+      <button class="mb" id="btn-3d" onclick="toggle3D()" title="Toggle 3D Globe" style="font-size:9px;margin-top:6px;border-color:var(--accent);color:var(--accent)">3D</button>
+    </div>
+    <div id="globe-canvas-wrap" style="display:none;width:100%;height:100%;position:absolute;top:0;left:0"></div>
+    <svg id="world-svg"></svg>
+    <div id="country-detail-panel" style="display:none;position:absolute;top:9px;left:9px;width:280px;max-height:calc(100% - 18px);background:rgba(10,7,0,.97);border:1px solid var(--accent);border-radius:4px;overflow-y:auto;z-index:20;flex-direction:column;padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div id="cdp-name" style="font-family:var(--fh);font-size:13px;font-weight:700;color:var(--accent);letter-spacing:2px"></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:3px">
+            <span id="cdp-iso" style="font-family:var(--fm);font-size:9px;color:var(--muted)"></span>
+            <span id="cdp-level" style="font-family:var(--fm);font-size:9px"></span>
+          </div>
+        </div>
+        <button onclick="closeCountryView()" style="background:transparent;border:1px solid var(--border2);color:var(--subtle);font-size:11px;padding:2px 7px;border-radius:2px;cursor:pointer;flex-shrink:0">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;padding:9px;margin-bottom:10px">
+        <div style="text-align:center">
+          <div id="cdp-risk" style="font-family:var(--fh);font-size:22px;font-weight:700"></div>
+          <div style="font-family:var(--fm);font-size:7px;color:var(--muted)">RISK SCORE</div>
+        </div>
+        <div style="flex:1">
+          <button class="btn-p" style="font-size:8px;padding:5px 9px;width:100%" onclick="openBriefFromMap()">📋 FULL INTEL BRIEF</button>
+        </div>
+      </div>
+      <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:2px;margin-bottom:7px">// REGIONAL INTELLIGENCE</div>
+      <div id="cdp-states"></div>
+    </div>
+    <div class="mleg">
+      <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:2px;margin-bottom:6px">RISK LEVEL</div>
+      <div class="lrow"><div class="lsw" style="background:#ef4444"></div><span style="color:#ef4444">CRITICAL/WAR</span></div>
+      <div class="lrow"><div class="lsw" style="background:#f97316"></div><span style="color:#f97316">HIGH RISK</span></div>
+      <div class="lrow"><div class="lsw" style="background:#eab308"></div><span style="color:#eab308">ELEVATED</span></div>
+      <div class="lrow"><div class="lsw" style="background:#22c55e"></div><span style="color:#22c55e">STABLE</span></div>
+      <div class="lrow"><div class="lsw" style="background:#2563eb"></div><span style="color:#93c5fd">MONITORING</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NEWS ═══ -->
+<div id="panel-news" class="panel">
+  <div class="ph">
+    <div class="pt">// LIVE GEOPOLITICAL NEWS</div>
+    <div class="ps">Guardian · GNews · Hacker News fallback · real-time geopolitical headlines</div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+    <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:2px">
+      REAL-TIME GLOBAL CONFLICT / DIPLOMACY / SECURITY HEADLINES
+    </div>
+    <button class="refresh-btn" onclick="loadNews()">↻ REFRESH</button>
+  </div>
+
+  <div id="news-grid">
+    <div class="loading-card">
+      <div class="sp"></div>
+      <div class="loading-text" style="margin-top:8px">Loading headlines...</div>
+    </div>
+  </div>
+
+  <div class="last-updated" id="news-updated"></div>
+</div>
+
+<!-- ═══ LIVE TV ═══ -->
+<div id="panel-channels" class="panel">
+  <div class="ph"><div class="pt">// LIVE INTERNATIONAL NEWS CHANNELS</div><div class="ps">Real-time broadcast feeds · Click any channel to watch</div></div>
+  <div class="fbar" id="chan-fbar">
+    <button class="fp active" onclick="cf('all',this)">ALL CHANNELS</button>
+    <button class="fp" onclick="cf('intl',this)">🌍 INTERNATIONAL</button>
+    <button class="fp" onclick="cf('asia',this)">🌏 ASIA</button>
+    <button class="fp" onclick="cf('mideast',this)">🕌 MIDDLE EAST</button>
+    <button class="fp" onclick="cf('finance',this)">💹 FINANCE</button>
+  </div>
+        <div id="active-channel" style="margin-bottom:16px;display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="ac-thumb" style="font-size:24px"></span>
+        <div>
+          <div style="font-family:var(--fm);font-size:8px;color:var(--accent);letter-spacing:2px">▶ LIVE BROADCAST</div>
+          <div id="ac-name" style="font-size:14px;font-weight:700;color:var(--text)"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <div class="chan-live"><div class="chan-live-dot"></div>LIVE</div>
+        <button class="btn-s" style="font-size:8px" onclick="closeChannel()">✕ CLOSE</button>
+      </div>
+    </div>
+    <div style="background:#000;border:1px solid var(--accent);border-radius:3px;overflow:hidden;max-width:900px">
+      <video id="live-video" controls autoplay muted playsinline
+        style="width:100%;aspect-ratio:16/9;display:block;background:#000"
+        onerror="showVideoError()">
+      </video>
+    </div>
+    <div id="video-error" style="display:none;background:#0a0f1a;border:1px solid #ef4444;border-radius:3px;padding:16px;margin-top:8px;font-family:var(--fm);font-size:9px;color:#fca5a5;text-align:center">
+      ⚠ STREAM UNAVAILABLE — This channel's stream may be geo-blocked or temporarily offline.<br>
+      <span style="color:var(--subtle)">Try another channel or run via local server for best results.</span>
+    </div>
+    <div style="margin-top:6px;font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:1px">
+      💡 IF VIDEO DOESN'T LOAD: Open via <span style="color:var(--accent)">python -m http.server 8080</span> instead of file://
+    </div>
+  </div>
+  <div id="chan-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px"></div>
+</div>
+
+<!-- ═══ MARKETS ═══ -->
+<div id="panel-markets" class="panel">
+  <div class="ph">
+    <div class="pt">// GLOBAL MARKETS & ECONOMY</div>
+    <div class="ps">Professional market watch · live indices · live crypto · live forex · premium dashboard</div>
+  </div>
+
+  <div class="markets-topbar">
+    <div class="markets-strip" id="markets-strip">
+      <span class="tick-chip">LOADING LIVE MARKET DATA...</span>
+    </div>
+    <button class="refresh-btn" onclick="loadMarkets()">↻ REFRESH</button>
+  </div>
+
+  <div class="markets-layout">
+    <div class="markets-sidebar">
+      <div class="markets-side-head">GLOBAL MARKET WATCH</div>
+      <div id="markets-watchlist"></div>
+    </div>
+
+    <div class="markets-main">
+      <div class="market-hero">
+        <div class="hero-top">
+          <div>
+            <div class="hero-symbol" id="hero-symbol">SPY</div>
+            <div class="hero-name" id="hero-name">S&amp;P 500 ETF</div>
+          </div>
+          <div class="hero-badge">LIVE SNAPSHOT</div>
+        </div>
+
+        <div class="hero-price-row">
+          <div class="hero-price" id="hero-price">--</div>
+          <div class="hero-change" id="hero-change">Waiting for market data...</div>
+        </div>
+
+        <div class="hero-chart-wrap">
+          <div class="hero-chart-grid"></div>
+          <svg id="market-mini-chart" viewBox="0 0 800 220" preserveAspectRatio="none"></svg>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat"><span>Open</span><strong id="hero-open">--</strong></div>
+          <div class="hero-stat"><span>High</span><strong id="hero-high">--</strong></div>
+          <div class="hero-stat"><span>Low</span><strong id="hero-low">--</strong></div>
+          <div class="hero-stat"><span>Prev Close</span><strong id="hero-prev">--</strong></div>
+        </div>
+      </div>
+
+      <div class="markets-quick-section">
+        <div class="markets-quick-title">QUICK COMPARE</div>
+        <div class="markets-quick-grid" id="markets-quick-grid"></div>
+      </div>
+
+      <div class="market-groups">
+        <div class="market-group">
+          <div class="sec">MAJOR INDICES</div>
+          <div class="markets-cards-grid" id="ig"></div>
+        </div>
+
+        <div class="market-group">
+          <div class="sec">CRYPTOCURRENCY</div>
+          <div class="markets-cards-grid" id="cg"></div>
+        </div>
+
+        <div class="market-group">
+          <div class="sec">COMMODITIES</div>
+          <div class="markets-cards-grid" id="og"></div>
+        </div>
+
+        <div class="market-group">
+          <div class="sec">FOREX</div>
+          <div class="markets-cards-grid" id="fg"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="markets-rightbar">
+      <div class="right-panel">
+        <div class="markets-side-head">MARKET SUMMARY</div>
+        <div id="markets-summary">
+          <div class="summary-row"><span>Status</span><strong>Waiting for data</strong></div>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="markets-side-head">TOP MOVERS</div>
+        <div id="top-movers"></div>
+      </div>
+
+      <div class="right-panel">
+        <div class="markets-side-head">UPDATE STATUS</div>
+        <div class="markets-updated" id="markets-updated">No live market request yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ AI PREDICTIONS ═══ -->
+<div id="panel-pred" class="panel">
+  <div class="ph"><div class="pt">// AI STRATEGIC PREDICTIONS</div><div class="ps">Probability-weighted geopolitical forecasts · Signal-based AI analysis</div></div>
+  <div style="display:flex;gap:8px;margin-bottom:13px;align-items:center;flex-wrap:wrap">
+    <button class="btn-p" onclick="genPred()">⚡ GENERATE NEW PREDICTIONS</button>
+    <div style="font-family:var(--fm);font-size:8px;color:var(--muted)">REQUIRES GROQ API KEY</div>
+  </div>
+  <div id="pgrid"></div>
+</div>
+
+<!-- ═══ COUNTRY BRIEFS ═══ -->
+<div id="panel-briefs" class="panel">
+  <div class="ph"><div class="pt">// COUNTRY INTELLIGENCE BRIEFS</div><div class="ps">Click any country for a full AI-generated intelligence brief</div></div>
+  <div class="fbar" id="rfbar">
+    <button class="fp active" onclick="rfilt('all',this)">ALL</button>
+    <button class="fp" onclick="rfilt('asia',this)">ASIA</button>
+    <button class="fp" onclick="rfilt('europe',this)">EUROPE</button>
+    <button class="fp" onclick="rfilt('middleeast',this)">MIDDLE EAST</button>
+    <button class="fp" onclick="rfilt('americas',this)">AMERICAS</button>
+    <button class="fp" onclick="rfilt('africa',this)">AFRICA</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px" id="cg2"></div>
+</div>
+
+<!-- ═══ KNOWLEDGE GRAPH ═══ -->
+<div id="panel-kg" class="panel">
+  <div class="ph"><div class="pt">// GEOPOLITICAL KNOWLEDGE GRAPH</div><div class="ps">Entity relationships · Ontology of connections · Drag nodes to explore</div></div>
+  <div class="fbar" id="kgfbar"></div>
+  <div id="kg-wrap">
+    <div style="position:absolute;top:9px;right:9px;z-index:10;display:flex;flex-direction:column;gap:3px">
+      <button class="mb" onclick="kz(1.3)">+</button>
+      <button class="mb" onclick="kz(0.77)">−</button>
+      <button class="mb" onclick="kzr()" style="font-size:9px">⌂</button>
+    </div>
+    <div style="position:absolute;bottom:7px;left:10px;font-family:var(--fm);font-size:8px;color:var(--muted)">SCROLL TO ZOOM · DRAG TO PAN · DRAG NODES</div>
+    <svg id="kg-svg"></svg>
+  </div>
+</div>
+
+<!-- ═══ RISK MONITOR ═══ -->
+<div id="panel-risk" class="panel">
+  <div class="ph"><div class="pt">// GLOBAL RISK MONITOR</div><div class="ps">Country instability index · ACLED + Fund for Peace FSI composite scoring</div></div>
+  <div id="rg"></div>
+</div>
+
+<!-- ═══ CLIMATE & DISASTER ═══ -->
+<div id="panel-climate" class="panel">
+  <div class="ph"><div class="pt">// CLIMATE & DISASTER INTELLIGENCE</div><div class="ps">Weather patterns · Natural disasters · Environmental risks · Climate indicators</div></div>
+
+  <div class="sec">GLOBAL CLIMATE INDICATORS</div>
+  <div class="g4" id="clim-indicators"></div>
+
+  <div class="sec">ACTIVE DISASTERS & ALERTS</div>
+  <div id="disasters-grid" class="g2"></div>
+
+  <div class="sec">ENVIRONMENTAL RISK BY REGION</div>
+  <div id="env-risk-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px"></div>
+
+  <div class="sec">CLIMATE RISK — COUNTRY WATCH</div>
+  <div id="clim-countries"></div>
+
+  <div style="font-family:var(--fm);font-size:8px;color:var(--muted);margin-top:12px">⚡ DATA SOURCES: NASA EONET · NOAA · RELIEFWEB · GDACS — CONNECT APIS FOR REAL-TIME FEED</div>
+</div>
+
+<!-- ═══ SCENARIO BUILDER ═══ -->
+<div id="panel-scenario" class="panel">
+  <div class="ph"><div class="pt">// AI SCENARIO SIMULATOR</div><div class="ps">Describe any geopolitical trigger — AI models cascading effects across oil, markets, supply chains, and affected nations</div></div>
+  <div class="card cc">
+    <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:2px;margin-bottom:5px">TRIGGER EVENT</div>
+    <textarea id="sc-trigger" class="inp" rows="3" placeholder="e.g. Iran blocks the Strait of Hormuz… China invades Taiwan… Russia cuts EU gas supply…" style="resize:vertical"></textarea>
+    <div class="fbar" style="margin-top:8px" id="sc-presets"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:flex-end">
+      <div>
+        <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">TIME HORIZON</div>
+        <select id="sc-horizon" class="inp" style="width:110px">
+          <option value="24h">24 Hours</option>
+          <option value="7d" selected>7 Days</option>
+          <option value="30d">30 Days</option>
+          <option value="90d">90 Days</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">FOCUS AREAS</div>
+        <div class="fbar" id="sc-focus"></div>
+      </div>
+    </div>
+    <button class="btn-p" style="margin-top:12px" onclick="runScenario()">▶ RUN SCENARIO</button>
+  </div>
+  <div id="sc-results"></div>
+</div>
+
+<!-- ═══ TIMELINE ═══ -->
+<div id="panel-timeline" class="panel">
+  <div class="ph"><div class="pt">// ENTITY RELATIONSHIP TIMELINE</div><div class="ps">Track how relationships between countries evolved over time · AI-generated historical analysis</div></div>
+  <div class="card cc" style="margin-bottom:14px">
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div>
+        <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">ENTITY A</div>
+        <input id="tl-a" class="inp" value="India" style="width:130px"/>
+      </div>
+      <div style="color:var(--muted);padding-bottom:9px;font-family:var(--fm);font-size:10px">VS</div>
+      <div>
+        <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">ENTITY B</div>
+        <input id="tl-b" class="inp" value="China" style="width:130px"/>
+      </div>
+      <button class="btn-p" onclick="loadTimeline()">LOAD TIMELINE</button>
+    </div>
+    <div class="fbar" style="margin-top:9px" id="tl-quick"></div>
+  </div>
+  <div id="tl-results"><div class="lb2">SELECT ENTITIES AND CLICK LOAD TIMELINE</div></div>
+</div>
+
+<!-- ═══ BIAS DETECTOR ═══ -->
+<div id="panel-bias" class="panel">
+  <div class="ph"><div class="pt">// NARRATIVE BIAS DETECTOR</div><div class="ps">Compare how BBC, Xinhua, Al Jazeera, and RT frame the same event · Expose propaganda divergence</div></div>
+  <div class="card cc" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px">
+    <div style="flex:1;min-width:200px">
+      <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">EVENT OR TOPIC</div>
+      <input id="bias-input" class="inp" placeholder="e.g. Gaza ceasefire, Taiwan Strait tensions, Ukraine war..."/>
+    </div>
+    <button class="btn-p" onclick="analyzeBias()">🔍 ANALYZE NARRATIVES</button>
+  </div>
+  <div class="fbar" id="bias-trends"></div>
+  <div id="bias-results"><div class="lb2">ENTER A TOPIC TO ANALYZE MEDIA NARRATIVES</div></div>
+</div>
+
+<!-- ═══ MY FEED ═══ -->
+<div id="panel-feed" class="panel">
+  <div class="ph" style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><div class="pt">// PERSONALIZED INTELLIGENCE FEED</div><div class="ps">AI-curated briefing based on your interests</div></div>
+    <button class="btn-s" onclick="toggleFeedProfile()">⚙ CUSTOMIZE</button>
+  </div>
+  <div id="feed-profile" style="display:none" class="card cc" style="margin-bottom:12px">
+    <div style="font-family:var(--fm);font-size:8px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">YOUR INTERESTS (CLICK TO TOGGLE)</div>
+    <div id="feed-topics-wrap"></div>
+    <button class="btn-p" style="margin-top:10px" onclick="saveFeed()">✓ SAVE & REFRESH FEED</button>
+  </div>
+  <div id="feed-chips" class="fbar" style="margin-bottom:9px"></div>
+  <div id="feed-curator" style="display:none;background:var(--panel);border:1px solid rgba(0,255,136,.2);border-left:3px solid var(--accent3);border-radius:3px;padding:12px;margin-bottom:10px;font-size:12px;line-height:1.6;color:var(--text)"></div>
+  <div id="feed-results"><div class="lb2"><div class="sp"></div>LOADING YOUR FEED...</div></div>
+</div>
+
+<!-- ═══ ASK AI ═══ -->
+<div id="panel-askai" class="panel">
+  <div class="ph"><div class="pt">// ASK AI ANALYST</div><div class="ps">Geopolitical intelligence queries · Geopolitical intelligence queries · Live AI analysis</div></div>
+  <div id="ai-wrap">
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="ai-sugs"></div>
+    <div id="ai-hist"></div>
+    <div class="airow">
+      <textarea id="ai-in" placeholder="Ask about geopolitical risks, market impacts, regional stability..."></textarea>
+      <button class="btn-p" onclick="sendAI()" style="align-self:flex-end;white-space:nowrap;padding:8px 12px">SEND ▶</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- #main -->
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>
